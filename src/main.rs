@@ -3,31 +3,39 @@ use serde_json::Value;
 use csv::Writer;
 use dotenv::dotenv;
 use std::env;
+use std::io;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv().ok();
 
     let api_key = env::var("YOUTUBE_API_KEY").expect("YOUTUBE_API_KEY must be set");
-    let channel_id = "UC09qo_osXVNMTjaxpQh3Xgg";
+    let mut channel_id = String::new();
+
+    println!("Enter Channel Id: ");
+
+    io::stdin()
+        .read_line(&mut channel_id)
+        .expect("Failed to read channel id");
+
+    let channel_id = channel_id.trim(); // Trim unwanted spaces and newline characters
 
     match fetch_videos(&api_key, channel_id).await {
         Ok(videos) => {
             println!("Fetched {} videos", videos.len());
 
             if videos.is_empty() {
-                println!("No videos found");
+                println!("No videos found.");
             } else {
-                write_to_csv(videos);
-                println!("Videos written to CSV");
+                write_to_csv(videos)?; // Propagate errors correctly
+                println!("Videos written to CSV.");
             }
         }
-
         Err(e) => {
             println!("Error fetching videos: {}", e);
             if let Some(reqwest_err) = e.downcast_ref::<reqwest::Error>() {
-                if let Some(status) = reqwest_err.status(){
-                    println!("HTTP Status {}", status);
+                if let Some(status) = reqwest_err.status() {
+                    println!("HTTP Status: {}", status);
                 }
             }
         }
@@ -37,7 +45,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 //fetch videos
-async fn fetch_videos(api_key: &str, channel_id: &str) -> Result<Vec<Value>, Box<dyn std::error::Error>>{
+async fn fetch_videos(api_key: &str, channel_id: &str) -> Result<Vec<Value>, Box<dyn std::error::Error>> {
     let client = Client::new();
     let mut videos = Vec::new();
     let mut page_token = String::new();
@@ -58,8 +66,8 @@ async fn fetch_videos(api_key: &str, channel_id: &str) -> Result<Vec<Value>, Box
 
         let json: Value = response.json().await?;
 
-        if let Some(error) = json.get("error"){
-            print!("API returned an error: {:?}", error);
+        if let Some(error) = json.get("error") {
+            println!("API returned an error: {:?}", error);
             return Err("API returned an error".into());
         }
 
@@ -77,12 +85,11 @@ async fn fetch_videos(api_key: &str, channel_id: &str) -> Result<Vec<Value>, Box
     Ok(videos)
 }
 
-
 //writer to CSV function
-fn write_to_csv(videos: Vec<Value>) -> Result<(), Box<dyn std::error::Error>>{
+fn write_to_csv(videos: Vec<Value>) -> Result<(), Box<dyn std::error::Error>> {
     let mut wtr = Writer::from_path("videos_data.csv")?;
 
-    wtr.write_record(&["Video ID", "Title", "Descrption", "Published At"])?;
+    wtr.write_record(&["Video ID", "Title", "Description", "Published At"])?;
 
     for video in videos {
         let snippet = &video["snippet"];
@@ -95,6 +102,6 @@ fn write_to_csv(videos: Vec<Value>) -> Result<(), Box<dyn std::error::Error>>{
         ])?;
     }
 
-    wtr.flush()?;
+    wtr.flush()?; // Ensure data is flushed to the file
     Ok(())
 }
