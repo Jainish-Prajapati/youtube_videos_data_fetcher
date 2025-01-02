@@ -26,7 +26,7 @@ The project uses the following Rust crates:
    cd youtube_videos_data_fetcher
    ```
 
-2. Save YouTube Data API v3 in ```.env``` file & initialize ```channel_id``` variable with channel id of which you want data(can get using: [TunePocket](https://www.tunepocket.com/youtube-channel-id-finder/))
+2. Save YouTube Data API v3 in ```.env``` file & initialize ```channel_id``` variable at runtime with channel id of which you want data(can get using: [TunePocket](https://www.tunepocket.com/youtube-channel-id-finder/))
 
 3. Run Project(install rust before this step):
     ```bash
